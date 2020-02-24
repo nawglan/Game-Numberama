@@ -1,16 +1,16 @@
-package Game::Numberama::Iterators::Row;
+package Game::Numberama::Iterator::Row;
 
 =pod
 
 =head1 NAME
 
-Game::Numberama::Iterators::Row - An iterator that goes row by row
+Game::Numberama::Iterator::Row - An iterator that goes row by row
 
 =head1 SYNOPSIS
 
-  use Game::Numberama::Iterators::Row;
+  use Game::Numberama::Iterator::Row;
 
-  my $iter = Game::Numberama::Iterators::Row->new(
+  my $iter = Game::Numberama::Iterator::Row->new(
     column => 0,
     row => 0,
     data => $board_state_str,
@@ -85,13 +85,21 @@ sub next {
 
   if ($self->direction eq 'forward') {
     if (defined $self->index) {
-      if ($self->index == length($self->data) - 1) {
-        $self->index(undef);
+      if (!defined $self->column && !defined $self->row) {
+        my ($c, $r) = $self->coords_at($self->index);
+        $self->column($c);
+        $self->row($r);
       } else {
-        $self->index($self->index + 1);
+        if ($self->index == length($self->data) - 1) {
+          $self->index(undef);
+        } else {
+          $self->index($self->index + 1);
+        }
       }
     } else {
       if (!defined $self->column && !defined $self->row) {
+        $self->column(0);
+        $self->row(0);
         $self->index(0);
       } else {
         $self->column(0) unless defined $self->column;
@@ -101,10 +109,16 @@ sub next {
     }
   } else {
     if (defined $self->index) {
-      if ($self->index == 0) {
-        $self->index(undef);
+      if (!defined $self->column && !defined $self->row) {
+        my ($c, $r) = $self->coords_at($self->index);
+        $self->column($c);
+        $self->row($r);
       } else {
-        $self->index($self->index - 1);
+        if ($self->index == 0) {
+          $self->index(undef);
+        } else {
+          $self->index($self->index - 1);
+        }
       }
     } else {
       if (!defined $self->column && !defined $self->row) {
@@ -113,19 +127,20 @@ sub next {
         $self->row($r);
       } elsif (!defined $self->column) {
         $self->column($self->width - 1);
-        while ($self->char_at($self->column, $self->row) eq '') {
+        while ($self->char_at($self->data, $self->column, $self->row) eq '') {
           my $c = $self->column - 1;
           if ($c >= 0) {
             $self->column($c);
           } else {
-            $self->column($self->width - 1);
-            my $r = $self->row - 1;
-            last if $r == -1;
-            $self->row($r);
+            last;
           }
         }
         die 'Unable to establish starting index.' unless
-          $self->char_at($self->column, $self->row) ne '';
+          $self->char_at($self->data, $self->column, $self->row) ne '';
+      } elsif (!defined $self->row) {
+        my $r = 0;
+        $r++ while $self->char_at($self->data, $self->column, $r + 1) ne '';
+        $self->row($r);
       }
 
       $self->index($self->index_at($self->column, $self->row));
@@ -138,7 +153,8 @@ sub next {
 sub current {
   my $self = shift;
   return undef if !defined $self->index;
-  return substr($self->data, $self->index, 1) if defined $self->index;
+  return undef if defined $self->index && !defined $self->column || !defined $self->row;
+  return substr($self->data, $self->index, 1);
 }
 
 1;

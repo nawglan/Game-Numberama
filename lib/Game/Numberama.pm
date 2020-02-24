@@ -156,7 +156,7 @@ This package will be used like this:
   while ($board_not_solved && $turn < 500) {
     my @move = $logic->find_match($1d_string_of_board_state);
     if (scalar @move == 4) {
-      $self->validate_move(@move);
+      $self->update_board(@move);
     } else {
       $self->check;
     }
@@ -238,31 +238,18 @@ Order is preserved, any occurrance of # is skipped.
 sub check {
   my $self = shift;
 
-  push @{$self->board_state}, $self->append_unmarked($self->board_state->[-1]);
+  push @{$self->board_state}, $self->append_unmarked($self->current_board);
 }
 
-=head2 cross_out
+=head2 current_board
 
-Replaces the number at C<$column, $row> with a #.
+Returns the current board layout as a 1d string
 
 =cut
 
-sub cross_out {
-  my ($self, $column, $row) = @_;
-  my $index = $self->index_at($column, $row);
-  substr($self->board_state->[-1], $index, 1) = '#';
-}
-
-=head2 display_board
-
-Prints the board out
-
-=cut
-
-sub display_board {
-  my ($self, $turn) = @_;
-
-  print join("\n", split(/.{$self->width}/, $self->board_state->[$turn]));
+sub current_board {
+  my $self = shift;
+  return $self->board_state->[-1];
 }
 
 =head2 save_state
@@ -301,10 +288,10 @@ sub solve {
   my $logic = $self->logic_package->new(width => $self->width);
 
   my $turn = (scalar @{$self->board_state}) - 1;
-  while ($turn++ < $self->bail_out && !$self->solved) {
-    my @move = $logic->find_match($self->board_state->[$turn-1]);
+  while ($turn++ < $self->bail_out && !$self->solved($self->current_board)) {
+    my @move = $logic->find_match($self->current_board);
     if (scalar @move == 4) {
-      unless ($self->validate_move(@move)) {
+      unless ($self->update_board(@move)) {
         $self->save_state if $self->verbose;
         die "Error, invalid move detected.\n" .
             "Move was: [$move[0], $move[1]], [$move[2], $move[3]]"
@@ -313,26 +300,17 @@ sub solve {
       $self->check;
     };
 
-    $self->display_board($turn) if $self->verbose;
+    if ($self->verbose) {
+      print "============ Turn $turn\n";
+      print $self->format_for_display($self->current_board);
+    }
   }
 
   $self->save_state if $self->verbose;
-  return $self->solved;
+  return $self->solved($self->current_board);
 }
 
-=head2 solved
-
-Returns 1 if there are no numbers left.
-
-=cut
-
-sub solved {
-  my $self = shift;
-
-  return $self->num_left($self->board_state->[-1]) == 0;
-}
-
-=head2 validate_move
+=head2 update_board
 
 Checks to ensure that the numbers at the given coords are valid for a match.
 If valid, updates the board state by replacing the numbers at these coords
@@ -340,18 +318,13 @@ with an #.
 
 =cut
 
-sub validate_move {
+sub update_board {
   my ($self, $column1, $row1, $column2, $row2) = @_;
-  my $char1 = $self->char_at($self->board_state->[-1], $column1, $row1);
-  my $char2 = $self->char_at($self->board_state->[-1], $column2, $row2);
 
-  return 0 if ($char1 eq '' || $char2 eq '') or # request for an invalid position
-              ($char1 eq '#' || $char2 eq '#'); # a position that has been marked
-
-  if (($char1 eq $char2) || (($char1 + $char2) == 10)) {
-    push @{$self->board_state}, $self->board_state->[-1];
-    $self->cross_out($column1, $row1);
-    $self->cross_out($column2, $row2);
+  if ($self->valid_move($self->current_board, $column1, $row1, $column2, $row2)) {
+    my $new_board = $self->cross_out($self->current_board, $column1, $row1);
+    $new_board = $self->cross_out($new_board, $column2, $row2);
+    push @{$self->board_state}, $new_board;
     return 1;
   }
 
