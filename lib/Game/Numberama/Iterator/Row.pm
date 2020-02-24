@@ -85,7 +85,7 @@ sub next {
 
   if ($self->direction eq 'forward') {
     if (defined $self->index) {
-      if (!defined $self->column && !defined $self->row) {
+      if (!defined $self->column || !defined $self->row) {
         my ($c, $r) = $self->coords_at($self->index);
         $self->column($c);
         $self->row($r);
@@ -105,6 +105,7 @@ sub next {
         $self->column(0) unless defined $self->column;
         $self->row(0) unless defined $self->row;
         $self->index($self->index_at($self->column, $self->row));
+        die "index out of range\n" if $self->index >= length $self->data;
       }
     }
   } else {
@@ -125,25 +126,22 @@ sub next {
         my ($c, $r) = $self->coords_at(length($self->data) - 1);
         $self->column($c);
         $self->row($r);
-      } elsif (!defined $self->column) {
+      } elsif (!defined $self->column && defined $self->row) {
+        die "row out of range\n" if $self->row < 0;
         $self->column($self->width - 1);
-        while ($self->char_at($self->data, $self->column, $self->row) eq '') {
-          my $c = $self->column - 1;
-          if ($c >= 0) {
-            $self->column($c);
-          } else {
-            last;
-          }
-        }
-        die 'Unable to establish starting index.' unless
-          $self->char_at($self->data, $self->column, $self->row) ne '';
-      } elsif (!defined $self->row) {
+        my $c = $self->width - 1;
+        $c-- while $c >= 0 && $self->char_at($self->data, $c, $self->row) eq '';
+        die "row out of range\n" if $c == -1;
+        $self->column($c);
+      } elsif (defined $self->column && !defined $self->row) {
         my $r = 0;
+        die "column out of range\n" if $self->column < 0 || $self->column >= $self->width;
         $r++ while $self->char_at($self->data, $self->column, $r + 1) ne '';
         $self->row($r);
       }
 
       $self->index($self->index_at($self->column, $self->row));
+      die "index out of range\n" if $self->index >= length $self->data;
     }
   }
 
@@ -153,7 +151,7 @@ sub next {
 sub current {
   my $self = shift;
   return undef if !defined $self->index;
-  return undef if defined $self->index && !defined $self->column || !defined $self->row;
+  return undef if defined $self->index && (!defined $self->column || !defined $self->row);
   return substr($self->data, $self->index, 1);
 }
 

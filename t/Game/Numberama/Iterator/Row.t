@@ -23,6 +23,24 @@ subtest 'forward' => sub {
     is \@got, \@expected, 'Iterator worked as expected when going forward';
   };
 
+  subtest 'no coords modulus width' => sub {
+    my $iter = Game::Numberama::Iterator::Row->new(
+      data => '123456789111213141516171819',
+      width => 9,
+    );
+
+    is $iter->current, U(), 'Iterater starts undefined.';
+
+    my @expected = qw(1 2 3 4 5 6 7 8 9 1 1 1 2 1 3 1 4 1 5 1 6 1 7 1 8 1 9);
+
+    my @got;
+    while (my $has = $iter->next) {
+      push @got, $has;
+    }
+
+    is \@got, \@expected, 'Iterator worked as expected when going forward';
+  };
+
   subtest 'with coords' => sub {
     my $iter = Game::Numberama::Iterator::Row->new(
       data => '12345678911121314',
@@ -41,6 +59,19 @@ subtest 'forward' => sub {
     }
 
     is \@got, \@expected, 'Iterator with coords worked as expected when going forward';
+  };
+
+  subtest 'with invalid coords' => sub {
+    my $iter = Game::Numberama::Iterator::Row->new(
+      data => '12345678911121314',
+      column => 3,
+      row => 40,
+      width => 9,
+    );
+
+    is $iter->current, U(), 'Iterater starts undefined.';
+
+    is(dies{$iter->next}, "index out of range\n", 'invalid coords dies on next');
   };
 
   subtest 'with just column' => sub {

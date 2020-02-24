@@ -114,6 +114,7 @@ sub next {
       }
 
       $self->index($self->index_at($self->column, $self->row));
+      die "index out of range\n" if $self->index >= length $self->data;
     }
   } else {
     if (defined $self->index) {
@@ -147,25 +148,20 @@ sub next {
         my (undef, $r) = $self->coords_at($i);
         $self->row($r);
         $self->column($self->width - 1);
-      }
-
-      if (!defined $self->column) {
+      } elsif (!defined $self->column && defined $self->row) {
         my $c = $self->width - 1;
-        my $r = $self->row;
-        while ($self->char_at($self->data, $c, $r) eq '') {
-          $c--;
-          if ($c == -1) {
-            die "unable to find appropriate starting place";
-          }
-        }
+        $c-- while $c >= 0 && $self->char_at($self->data, $c, $self->row) eq '';
+        die "row out of range\n" if $c == -1;
         $self->column($c);
-      } elsif (!defined $self->row) {
+      } elsif (defined $self->column && !defined $self->row) {
         my $r = 0;
+        die "column out of range\n" if $self->column < 0 || $self->column >= $self->width;
         $r++ while $self->char_at($self->data, $self->column, $r + 1) ne '';
         $self->row($r);
       }
 
       $self->index($self->index_at($self->column, $self->row));
+      die "index out of range\n" if $self->index >= length $self->data;
     }
   }
 
