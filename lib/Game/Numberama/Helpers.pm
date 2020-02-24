@@ -65,7 +65,11 @@ Replaces the number at C<$column, $row> with a #.
 sub cross_out {
   my ($self, $board_str, $column, $row) = @_;
   my $index = $self->index_at($column, $row);
-  return substr($board_str, $index, 1) = '#';
+
+  my $new_board = $board_str;
+  substr($new_board, $index, 1) = '#';
+
+  return $new_board;
 }
 
 =head2 format_for_display

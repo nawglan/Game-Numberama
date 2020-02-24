@@ -45,6 +45,18 @@ subtest coords_at => sub {
   is(\@coords, [5,3], '32 works');
 };
 
+subtest cross_out => sub {
+  my @coords;
+  ok($obj->can('cross_out'), 'object can do cross_out');
+  my $board_str = '#2345678###121314';
+  my $expected  = '##345678###121314';
+
+  my $result = $obj->cross_out($board_str, 1, 0);
+
+  is($result, $expected, 'successfully crossed out the correct one');
+  is($board_str, '#2345678###121314', 'board_str is unchanged');
+};
+
 subtest format_for_display => sub {
   my $board_str = '#2345678###121314';
   ok($obj->can('format_for_display'), 'object can do format_for_display');
@@ -81,6 +93,9 @@ subtest is_neighbor => sub {
 
   is($obj->is_neighbor($board_str, 8, 0, 8, 3), F(), 'not immediately adjacent north/south');
   is($obj->is_neighbor($board_str, 0, 0, 0, 2), F(), 'not immediately adjacent north/south');
+
+  is($obj->is_neighbor($board_str, 1, 0, 0, 0), T(), 'immediately adjacent east/west coords swapped');
+  is($obj->is_neighbor($board_str, 5, 3, 5, 0), T(), 'immediately adjacent north/south skip # coords swapped');
 };
 
 subtest num_left => sub {
@@ -101,23 +116,30 @@ subtest solved => sub {
 
 subtest valid_move => sub {
   ok($obj->can('valid_move'), 'object can do solved'); # DEZ
-  subtest easy => sub {
-    my $board_str = '12345678911121314';
-    is ($obj->valid_move($board_str, 0,0,0,1), T(), 'vertical match of the 1s');
-    is ($obj->valid_move($board_str, 8,0,0,1), T(), 'horizontal 9 + 1 = 10');
-    is ($obj->valid_move($board_str, 0,0,1,1), F(), 'not neighbors but are a pair');
-    is ($obj->valid_move($board_str, 0,0,1,0), F(), 'not equal to 10 or a pair');
-    is ($obj->valid_move($board_str, 3,0,5,0), F(), 'not neighbors but equal to 10');
-  };
+
+  my $board_str = '12345678911121314';
+  is($obj->valid_move($board_str, 0,0,0,1), T(), 'vertical match of the 1s');
+  is($obj->valid_move($board_str, 8,0,0,1), T(), 'horizontal 9 + 1 = 10');
+  is($obj->valid_move($board_str, 0,0,1,1), F(), 'not neighbors but are a pair');
+  is($obj->valid_move($board_str, 0,0,1,0), F(), 'not equal to 10 or a pair');
+  is($obj->valid_move($board_str, 3,0,5,0), F(), 'not neighbors but equal to 10');
 
   subtest hard => sub {
     my $board_str = '123456789111#############19#23456789#11213141#16171819';
+    #'123456789
+    #'111######
+    #'#######19
+    #'#23456789
+    #'#11213141
+    #'#16171819
 
-    is ($obj->valid_move($board_str, 2,1,7,2), T(), 'horizontal match of the 1s, skipping #');
-    is ($obj->valid_move($board_str, 8,0,8,2), T(), 'horizontal pair of 9s, skipping #');
+    is($obj->valid_move($board_str, 2,1,7,2), T(), 'horizontal match of the 1s, skipping #');
+    is($obj->valid_move($board_str, 8,0,8,2), T(), 'horizontal pair of 9s, skipping #');
 
-    is ($obj->valid_move($board_str, 0,1,0,2), F(), 'neighbors but one is #');
-    is ($obj->valid_move($board_str, 0,1,-1,1), F(), 'neighbors but one is empty str');
+    is($obj->valid_move($board_str, 0,1,0,2), F(), 'neighbors but one is #');
+    is($obj->valid_move($board_str, 0,1,-1,1), F(), 'neighbors but one is empty str');
+    is($obj->valid_move($board_str, -1,1,0,1), F(), 'neighbors but one is empty str');
+    is($obj->valid_move($board_str, 0,2,0,1), F(), 'neighbors but one is #');
   };
 };
 

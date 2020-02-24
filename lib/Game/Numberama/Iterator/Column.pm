@@ -89,8 +89,6 @@ sub next {
         $self->row($r);
       } else {
         my ($c, $r) = $self->coords_at($self->index);
-        $self->column($c);
-        $self->row($r);
 
         $r++;
         if ($self->char_at($self->data, $c, $r) eq '') {
@@ -125,8 +123,6 @@ sub next {
         $self->row($r);
       } else {
         my ($c, $r) = $self->coords_at($self->index);
-        $self->column($c);
-        $self->row($r);
 
         if ($r == 0) {
           if ($c == 0) {
@@ -179,7 +175,7 @@ sub next {
 sub current {
   my $self = shift;
   return undef if !defined $self->index;
-  return undef if defined $self->index && !defined $self->column || !defined $self->row;
+  return undef if defined $self->index && (!defined $self->column || !defined $self->row);
   return substr($self->data, $self->index, 1);
 }
 
